@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>SkyDe - Final Menu</title>
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+.app-background {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: -3;
+  background-image: url('YOUR_BASE64_HERE');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.app-background::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.7) 100%);
+  z-index: -2;
+}
+
+.background-effects {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: -1;
+}
+
+.orb {
+  position: absolute;
+  width: 300px; height: 300px;
+  border-radius: 50%;
+  filter: blur(60px);
+  animation: float 15s ease-in-out infinite;
+}
+
+.orb1 {
+  top: -50px; left: -50px;
+  background: rgba(0, 122, 255, 0.2);
+}
+
+.orb2 {
+  bottom: -100px; right: -100px;
+  background: rgba(52, 199, 89, 0.15);
+  animation-delay: 3s;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
+}
+
+.content {
+  position: relative;
+  z-index: 1;
+  padding: 60px 20px 140px;
+  text-align: center;
+}
+
+h1 {
+  font-size: 36px;
+  margin-bottom: 10px;
+  background: linear-gradient(180deg, #FFF 0%, #007AFF 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+p {
+  color: rgba(255,255,255,0.7);
+  margin-bottom: 30px;
+  font-weight: 500;
+}
+
+.info {
+  background: rgba(255,255,255,0.08);
+  backdrop-filter: blur(20px);
+  border-radius: 20px;
+  padding: 20px;
+  border: 1px solid rgba(255,255,255,0.15);
+}
+
+#page-title {
+  font-size: 24px;
+  color: #007AFF;
+  transition: all 0.3s ease;
+  font-weight: 700;
+}
+
+/* ===== ОВАЛЬНЫЙ ОСТРОВ БЕЗ ОТСТУПОВ ===== */
+.menu {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 320px;
+  height: 80px;
+  background: rgba(255,255,255,0.06);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 40px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.37);
+
+  display: grid;
+  grid-template-columns: repeat(4, 80px);
+  align-items: center;
+  justify-items: center;
+  padding: 0; /* УБРАНЫ ОТСТУПЫ ДЛЯ ТОЧНОГО ЦЕНТРИРОВАНИЯ */
+}
+
+.drop {
+  position: absolute;
+  width: 56px; height: 56px;
+  background: linear-gradient(
+    135deg,
+    rgba(0, 122, 255, 0.25) 0%,
+    rgba(0, 81, 213, 0.35) 50%,
+    rgba(0, 122, 255, 0.20) 100%
+  );
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 16px;
+  z-index: 1;
+  transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow:
+    inset 4px 4px 8px rgba(255, 255, 255, 0.25),
+    inset -4px -4px 8px rgba(0, 0, 0, 0.15),
+    0 8px 20px rgba(0, 122, 255, 0.4);
+}
+
+.drop::before {
+  content: '';
+  position: absolute;
+  top: 10px; left: 14px;
+  width: 18px; height: 18px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.8) 0%, transparent 70%);
+  border-radius: 50%;
+  filter: blur(2px);
+}
+
+.drop::after {
+  content: '';
+  position: absolute;
+  bottom: 6px; right: 10px;
+  width: 10px; height: 10px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.4) 0%, transparent 60%);
+  border-radius: 50%;
+  filter: blur(3px);
+}
+
+.item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px; height: 80px; /* РАЗМЕР ЯЧЕЙКИ = ШИРИНА КОЛОНКИ */
+  cursor: pointer;
+  z-index: 2;
+}
+
+.item-bg {
+  position: absolute;
+  width: 100%; height: 100%;
+  border-radius: 16px;
+  z-index: 0;
+}
+
+.icon {
+  width: 22px; height: 22px;
+  fill: rgba(255,255,255,0.5);
+  z-index: 2;
+  transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+  .item.active .icon {
+  fill: #FFFFFF;
+  transform: scale(1.25);
+}
+
+/* ===== ПРАВИЛЬНОЕ ЦЕНТРИРОВАНИЕ КАПЛИ ===== */
+/* Центр каждой ячейки: 40px, 120px, 200px, 280px */
+/* Капля 56px, нужно вычесть половину: 28px */
+.menu[data-active="0"] .drop { left: calc(40px - 28px); top: 12px; }
+.menu[data-active="1"] .drop { left: calc(120px - 28px); top: 12px; }
+.menu[data-active="2"] .drop { left: calc(200px - 28px); top: 12px; }
+.menu[data-active="3"] .drop { left: calc(280px - 28px); top: 12px; }
+
+/* Мобильная адаптация */
+@media (max-width: 375px) {
+  .menu {
+    width: 280px;
+    height: 70px;
+    bottom: 20px;
+    grid-template-columns: repeat(4, 70px);
+  }
+
+  .item {
+    width: 70px;
+    height: 70px;
+  }
+
+  .drop {
+    width: 48px;
+    height: 48px;
+  }
+
+  .icon {
+    width: 20px;
+    height: 20px;
+  }
+
+  /* 70px ячейка, центр в 35px, капля 48px, вычитаем 24px */
+  .menu[data-active="0"] .drop { left: calc(35px - 24px); top: 11px; }
+  .menu[data-active="1"] .drop { left: calc(105px - 24px); top: 11px; }
+  .menu[data-active="2"] .drop { left: calc(175px - 24px); top: 11px; }
+  .menu[data-active="3"] .drop { left: calc(245px - 24px); top: 11px; }
+}
+</style>
+</head>
+<body>
+
+<div class="app-background"></div>
+<div class="background-effects">
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+</div>
+
+<div class="content">
+  <h1>SkyDe NFT</h1>
+  <p>Нажмите на иконку внизу</p>
+  <div class="info">
+    <div id="page-title">Главная</div>
+  </div>
+</div>
+
+<nav class="menu" data-active="0">
+  <div class="drop"></div>
+
+  <!-- ГЛАВНАЯ - Дом -->
+  <div class="item active" data-index="0">
+    <div class="item-bg"></div>
+    <svg class="icon" viewBox="0 0 24 24">
+      <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+    </svg>
+  </div>
+
+  <!-- NFT - Магазин -->
+  <div class="item" data-index="1">
+    <div class="item-bg"></div>
+    <svg class="icon" viewBox="0 0 24 24">
+      <path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/>
+    </svg>
+  </div>
+
+  <!-- ИГРЫ - БАСКЕТБОЛЬНЫЙ МЯЧ -->
+  <div class="item" data-index="2">
+    <div class="item-bg"></div>
+    <svg class="icon" viewBox="0 0 24 24">
+      <!-- Круг мяча -->
+      <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/>
+      <!-- Вертикальная линия -->
+      <path d="M12 3v18"/>
+      <!-- Горизонтальная линия -->
+      <path d="M3 12h18"/>
+      <!-- Диагональные линии -->
+      <path d="M5.5 5.5l13 13"/>
+      <path d="M18.5 5.5l-13 13"/>
+    </svg>
+  </div>
+
+  <!-- ПРОФИЛЬ -->
+  <div class="item" data-index="3">
+    <div class="item-bg"></div>
+    <svg class="icon" viewBox="0 0 24 24">
+      <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+    </svg>
+  </div>
+</nav>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const items = document.querySelectorAll('.item');
+  const menu = document.querySelector('.menu');
+  const title = document.getElementById('page-title');
+  const drop = document.querySelector('.drop');
+
+  const titles = ['Главная', 'NFT Маркетплейс', 'Мини-игры', 'Профиль'];
+
+  items.forEach((item, index) => {
+    item.addEventListener('click', () => {
+      if (index === parseInt(menu.dataset.active)) return;
+
+      items.forEach(i => i.classList.remove('active'));
+      item.classList.add('active');
+      menu.setAttribute('data-active', index);
+
+      drop.style.transform = 'scale(0.85)';
+      drop.style.filter = 'brightness(1.2)';
+      setTimeout(() => {drop.style.transform = 'scale(1)';
+        drop.style.filter = 'brightness(1)';
+      }, 150);
+
+      title.style.opacity = '0';
+      title.style.transform = 'translateY(-10px)';
+      setTimeout(() => {
+        title.textContent = titles[index];
+        title.style.opacity = '1';
+        title.style.transform = 'translateY(0)';
+      }, 200);
+    });
+  });
+
+  drop.style.transform = 'scale(0)';
+  drop.style.opacity = '0';
+  setTimeout(() => {
+    drop.style.transform = 'scale(1)';
+    drop.style.opacity = '1';
+  }, 300);
+});
+</script>
+
+</body>
+</html>
