@@ -13,15 +13,32 @@ from skyde_bot.app.utils.utils import delete_previous_message, set_last_message_
 router = Router()
 
 
-# --- ВСПОМОГАТЕЛЬНАЯ ФУНКЦИЯ ДЛЯ ВАЛИДАЦИИ КОШЕЛЬКА ---
 def is_valid_wallet(address: str) -> bool:
     """Валидация адреса TON кошелька."""
-    # TON кошелек (EQ... или UQ...)
-    # Формат: 48 символов (EQ/UQ + 46 символов base64url)
-    if re.match(r'^(EQ|UQ)[a-zA-Z0-9_-]{46}$', address):
-        return True
-    return False
+    print(f"DEBUG: Валидация кошелька: {address}")
 
+    # Убираем пробелы
+    address = address.strip()
+
+    # Проверяем длину
+    if len(address) != 48:
+        print(f"DEBUG: Неправильная длина: {len(address)} вместо 48")
+        return False
+
+    # Проверяем начало
+    if not address.startswith(('EQ', 'UQ')):
+        print(f"DEBUG: Не начинается с EQ/UQ")
+        return False
+
+    # Проверяем допустимые символы
+    import re
+    pattern = r'^[A-Za-z0-9_-]+$'
+    if not re.match(pattern, address[2:]):  # Проверяем все кроме первых 2 символов
+        print(f"DEBUG: Содержит недопустимые символы")
+        return False
+
+    print(f"DEBUG: Кошелек прошел валидацию")
+    return True
 
 # --- ВСПОМОГАТЕЛЬНАЯ ФУНКЦИЯ ДЛЯ ВОЗВРАТА В НАСТРОЙКИ ---
 async def show_settings(input_obj: types.Message | types.CallbackQuery, state: FSMContext, bot: Bot):
@@ -416,19 +433,29 @@ async def start_wallet_change(callback: CallbackQuery, state: FSMContext, bot: B
         parse_mode='HTML'
     )
     await set_last_message_id(state, new_message.message_id)
+    print(f"DEBUG: Сообщение отправлено с ID: {new_message.message_id}")
+
 
 # --- 12. ИЗМЕНЕНИЕ КОШЕЛЬКА (Сохранение) ---
 @router.message(ProfileState.waiting_for_new_wallet)
 async def process_new_wallet(message: Message, state: FSMContext, session: AsyncSession, bot: Bot):
+    """Обработка ввода нового кошелька."""
+
+    print(f"DEBUG: Получено сообщение для кошелька: {message.text}")
+    print(f"DEBUG: Текущее состояние: {await state.get_state()}")
+    print(f"DEBUG: Ожидаемое состояние: {ProfileState.waiting_for_new_wallet.state}")
+
     # 1. Удаляем предыдущее сообщение бота (запрос кошелька)
     await delete_previous_message(state, message.chat.id, bot)
     # 2. Удаляем сообщение пользователя (введенный адрес)
     await message.delete()
 
     new_wallet = message.text.strip()
+    print(f"DEBUG: Введен кошелек: {new_wallet}")
 
     # Валидация адреса кошелька
     if not is_valid_wallet(new_wallet):
+        print(f"DEBUG: Кошелек не прошел валидацию")
         new_error_message = await message.answer(
             "❌ <b>Неверный формат TON адреса</b>\n\n"
             "Пожалуйста, проверьте адрес и отправьте снова.\n\n"
@@ -445,12 +472,16 @@ async def process_new_wallet(message: Message, state: FSMContext, session: Async
 
     user_service = UserService(session)
     try:
+        print(f"DEBUG: Сохраняем кошелек для user_id: {message.from_user.id}")
+
         await user_service.update_field(
             telegram_id=message.from_user.id,
             field_name='crypto_wallet',
             new_value=new_wallet
         )
+
         await state.clear()
+        print(f"DEBUG: Состояние очищено")
 
         # 3. Отправляем подтверждение
         confirm_msg = await message.answer(
@@ -458,6 +489,7 @@ async def process_new_wallet(message: Message, state: FSMContext, session: Async
             f"🔑 Новый адрес:\n<code>{new_wallet}</code>",
             parse_mode='HTML'
         )
+        print(f"DEBUG: Подтверждение отправлено")
 
         import asyncio
         await asyncio.sleep(2)
@@ -465,9 +497,9 @@ async def process_new_wallet(message: Message, state: FSMContext, session: Async
 
         await show_settings(message, state, bot)
 
-    except SQLAlchemyError:
+    except Exception as e:
+        print(f"DEBUG: Ошибка при сохранении: {e}")
         await message.answer("❌ Ошибка при сохранении данных. Попробуйте снова.")
         await show_settings(message, state, bot)
-
 # Хендлер main_menu_return теперь в start.py
 # Хендлер show_games теперь в games.py

@@ -57,8 +57,7 @@ def games_menu_keyboard() -> InlineKeyboardMarkup:
     """Меню выбора игр."""
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🎰 Слоты", callback_data="game_slots")],
-        [InlineKeyboardButton(text="⚽️ Футбол", callback_data="start_football")],
-        [InlineKeyboardButton(text="🎲 Кости", callback_data="start_dice")],
+        [InlineKeyboardButton(text="🎲 Кости", callback_data="game_dice")],  # ← Прямо в игру
         [InlineKeyboardButton(text="⬅️ Вернуться в главное меню", callback_data="main_menu_return")]
     ])
 

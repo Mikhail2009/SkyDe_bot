@@ -1,12 +1,19 @@
-import sys
-from aiogram import Router, types, F, Bot
+from aiogram import F
+from aiogram import Router, Bot
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery
-from typing import Dict, Tuple
+from typing import Dict
+from skyde_bot.app.keyboards.inline import support_actions_keyboard, main_menu_keyboard, cancel_keyboard
+from skyde_bot.app.states.support_states import SupportState
+from typing import Dict
+
+from aiogram import Router, Bot
+from aiogram.fsm.context import FSMContext
+from aiogram.types import Message, CallbackQuery
+from skyde_bot.app.keyboards.inline import InlineKeyboardMarkup, InlineKeyboardButton
+
 from skyde_bot.app.keyboards.inline import support_actions_keyboard, main_menu_keyboard, cancel_keyboard
 from skyde_bot.app.states.profile_states import ProfileState as SupportState
-
-
 
 router = Router()
 
@@ -23,30 +30,51 @@ FAQ_ANSWERS: Dict[str, str] = {
 }
 
 
-# --- ХЕНДЛЕР 1: Начало поддержки (callback_data="support") ---
-@router.callback_query(F.data == "support")
-async def start_support(callback: CallbackQuery, state: FSMContext):
-    """Начинает диалог с ассистентом поддержки."""
-    await callback.answer()
+def support_cancel_keyboard() -> InlineKeyboardMarkup:
+    """Клавиатура отмены ТОЛЬКО для поддержки."""
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="❌ Отмена поддержки", callback_data="cancel_support")]
+    ])
 
-    # 1. Устанавливаем состояние ожидания вопроса
-    await state.set_state(SupportState.waiting_for_question)
 
-    # 2. Удаляем старое сообщение (для чистой беседы)
-    await callback.message.delete()
+# --- ХЕНДЛЕР: Отмена поддержки ---
+@router.callback_query(F.data == "cancel_support")
+async def cancel_support_handler(callback: CallbackQuery, state: FSMContext):
+    """Отмена только режима поддержки."""
+    await callback.answer("Поддержка отменена")
 
-    # 3. Приглашение к диалогу с КНОПКОЙ ОТМЕНЫ
-    await callback.message.answer(
-        "🤖 Ассистент поддержки SkyDe\n\n"
-        "Пожалуйста, опишите ваш вопрос или проблему одним сообщением. Я постараюсь помочь!",
-        reply_markup=cancel_keyboard(),  # <--- ДОБАВЛЕНО
+    # Проверяем, что мы именно в поддержке
+    current_state = await state.get_state()
+    if current_state != SupportState.waiting_for_question.state:
+        await callback.answer("Не в режиме поддержки")
+        return
+
+    await state.clear()
+    await callback.message.edit_text(
+        "❌ Поддержка отменена.",
+        reply_markup=main_menu_keyboard(),
         parse_mode='Markdown'
     )
 
 
+@router.callback_query(F.data == "support")
+async def start_support(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    await state.set_state(SupportState.waiting_for_question)
 
+    await callback.message.answer(
+        "🤖 Ассистент поддержки SkyDe\n\n"
+        "Пожалуйста, опишите ваш вопрос или проблему одним сообщением.",
+        reply_markup=support_cancel_keyboard(),  # ← СПЕЦИАЛЬНАЯ клавиатура
+        parse_mode='Markdown'
+    )
+
+
+# --- ХЕНДЛЕР 2: Обработка вопроса ---
 @router.message(SupportState.waiting_for_question)
 async def process_question(message: Message, state: FSMContext, bot: Bot):
+    """Обработка введенного вопроса."""
+
     question = message.text.lower()
     found_answer = None
 
@@ -62,7 +90,7 @@ async def process_question(message: Message, state: FSMContext, bot: Bot):
     else:
         response_text = "🤷‍♂️ Извините, я не нашел готового ответа на ваш вопрос. Вы хотите связаться с живым администратором?"
 
-    # Отправка ответа с кнопками действий
+    # Отправка ответа
     await message.answer(
         response_text,
         reply_markup=support_actions_keyboard(),
@@ -102,18 +130,20 @@ async def contact_admin(callback: CallbackQuery, state: FSMContext, bot: Bot):
         )
 
 
-
-# --- ХЕНДЛЕР 4: Отмена FSM-режима (callback_data="cancel_fsm_mode") ---
+# --- ХЕНДЛЕР: Отмена FSM-режима ---
 @router.callback_query(F.data == "cancel_fsm_mode")
 async def cancel_fsm_mode(callback: CallbackQuery, state: FSMContext):
     """Сбрасывает FSM-состояние и возвращает пользователя в главное меню."""
 
     await callback.answer("Отменено.")
 
-    # 1. Сброс состояния
+    # 1. Проверяем текущее состояние
+    current_state = await state.get_state()
+
+    # 2. Сбрасываем состояние
     await state.clear()
 
-    # 2. Отправка подтверждения и возврат в главное меню
+    # 3. Отправка подтверждения и возврат в главное меню
     await callback.message.edit_text(
         "❌ Ввод отменен. Возврат в главное меню.",
         reply_markup=main_menu_keyboard(),

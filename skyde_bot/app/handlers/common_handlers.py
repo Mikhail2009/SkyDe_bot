@@ -1,8 +1,3 @@
-"""
-Общие хендлеры, которые используются во всех модулях.
-Этот роутер должен быть зарегистрирован ПЕРВЫМ в bot.py
-"""
-
 from aiogram import Router, F, Bot
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery

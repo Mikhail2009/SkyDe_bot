@@ -1,10 +1,12 @@
 import asyncio
 import logging
+from datetime import datetime
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-
+from aiogram.types import Message
+from aiogram.fsm.context import FSMContext
 from skyde_bot.app.config import BOT_TOKEN, DATABASE_URL
 from skyde_bot.app.database.base import Base
 from skyde_bot.app.middlewares.session_middleware import DBSessionMiddleware
@@ -19,6 +21,9 @@ from skyde_bot.app.handlers.games import router as games_router
 from skyde_bot.app.handlers.nft import router as nft_router
 from skyde_bot.app.handlers.chats import router as chats_router
 from skyde_bot.app.handlers.start import router as start_router
+from skyde_bot.app.handlers.dice import router as dice_router
+from skyde_bot.app.middlewares.auto_delete_middleware import AutoDeleteMiddleware
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -51,6 +56,13 @@ async def main():
     )
     dp = Dispatcher()
 
+    dp.update.outer_middleware(AutoDeleteMiddleware(
+        delete_previous=True,  # Удалять предыдущее сообщение бота
+        delete_user=True,  # Удалять сообщения пользователя
+        delay_bot=0,  # Без задержки для бота
+        delay_user=1  # 1 секунда задержки для сообщений пользователя
+    ))
+
     # --- 3. MIDDLEWARE ---
     @dp.update.outer_middleware()
     async def log_update_middleware(handler, event, data):
@@ -58,19 +70,26 @@ async def main():
         logger.info(f"📨 Received update: {event.update_id if hasattr(event, 'update_id') else 'unknown'}")
         return await handler(event, data)
 
+
+
     # Регистрация DB middleware
     dp.update.outer_middleware(DBSessionMiddleware(session_pool=session_pool))
 
-    # --- 4. ВКЛЮЧЕНИЕ РОУТЕРОВ (КРИТИЧЕСКИ ВАЖНЫЙ ПОРЯДОК) ---
-    dp.include_router(common_router)  # 1. ОБЩИЕ хендлеры (main_menu_return)
-    dp.include_router(dev_router)  # 2. Команды разработчика (/dev)
-    dp.include_router(support_router)  # 3. Поддержка (FSM состояния)
-    dp.include_router(profile_router)  # 4. Профиль (FSM состояния)
-    dp.include_router(slots_router)  # 5. Слоты (специфичные callback для игры)
-    dp.include_router(games_router)  # 6. Общие игры (show_games)
-    dp.include_router(nft_router)  # 7. NFT (FSM состояния для промокодов)
-    dp.include_router(chats_router)  # 8. ЧАТЫ (FSM состояния для диалогов) ← НОВОЕ
-    dp.include_router(start_router)  # 9. Регистрация и главное меню (должен быть последним)
+    # --- 4. ВКЛЮЧЕНИЕ РОУТЕРОВ ---
+
+    # ПРАВИЛЬНЫЙ ПОРЯДОК:
+    dp.include_router(profile_router)  # 1. Профиль (состояния ввода)
+    dp.include_router(nft_router)  # 2. NFT (состояния NFT)
+    dp.include_router(support_router)  # 3. Поддержка (ВЫШЕ чатов и игр!) ← ВАЖНО
+    dp.include_router(chats_router)  # 4. Чаты
+    dp.include_router(games_router)  # 5. Игры
+    dp.include_router(slots_router)  # 6. Слоты
+    dp.include_router(dice_router)
+    dp.include_router(common_router)  # 7. Общие
+    dp.include_router(start_router)  # 8. Старт
+    dp.include_router(dev_router)  # 9. Разработчик
+
+
 
     # --- 5. ЗАПУСК БОТА ---
     logger.info("🚀 Bot started!")
